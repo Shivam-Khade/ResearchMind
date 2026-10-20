@@ -2,6 +2,8 @@ import { NextRequest } from "next/server";
 import { spawn } from "child_process";
 import path from "path";
 import fs from "fs";
+import { runNativeResearchStream } from "@/lib/server/native-agent-engine";
+import { StreamEvent } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -19,24 +21,14 @@ export async function GET(req: NextRequest) {
   }
 
   const workspaceRoot = process.cwd();
-  
-  // Cross-platform Python resolver (Windows .venv/Scripts vs Linux/Docker .venv/bin vs system python3)
   const winVenv = path.join(workspaceRoot, ".venv", "Scripts", "python.exe");
   const linuxVenv = path.join(workspaceRoot, ".venv", "bin", "python");
-  const pythonPath = process.env.PYTHON_PATH || (
-    fs.existsSync(winVenv)
-      ? winVenv
-      : fs.existsSync(linuxVenv)
-        ? linuxVenv
-        : "python3"
-  );
-
-  const scriptPath = path.join(workspaceRoot, "run_stream.py");
+  const hasLocalPython = !process.env.VERCEL && (fs.existsSync(winVenv) || fs.existsSync(linuxVenv));
 
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
-    start(controller) {
+    async start(controller) {
       let isClosed = false;
 
       const safeEnqueue = (dataStr: string) => {
@@ -57,6 +49,43 @@ export async function GET(req: NextRequest) {
           // ignore
         }
       };
+
+      let aborted = false;
+      req.signal.addEventListener("abort", () => {
+        aborted = true;
+        isClosed = true;
+        safeClose();
+      });
+
+      // If running on Vercel or no local Python venv exists, run native serverless engine
+      if (process.env.VERCEL || !hasLocalPython) {
+        try {
+          await runNativeResearchStream({
+            topic,
+            provider,
+            model,
+            emitEvent: (event: StreamEvent) => {
+              safeEnqueue(`data: ${JSON.stringify(event)}\n\n`);
+            },
+            isAborted: () => aborted || isClosed,
+          });
+        } catch (err: any) {
+          const errEvent = JSON.stringify({
+            type: "agent_error",
+            agent: "writer",
+            error: err.message,
+            ts: Date.now(),
+          });
+          safeEnqueue(`data: ${errEvent}\n\n`);
+        } finally {
+          safeClose();
+        }
+        return;
+      }
+
+      // Otherwise, run local Python script in .venv
+      const pythonPath = fs.existsSync(winVenv) ? winVenv : (fs.existsSync(linuxVenv) ? linuxVenv : "python3");
+      const scriptPath = path.join(workspaceRoot, "run_stream.py");
 
       const pyProcess = spawn(pythonPath, [scriptPath, topic, provider, model], {
         cwd: workspaceRoot,
@@ -82,8 +111,7 @@ export async function GET(req: NextRequest) {
       });
 
       pyProcess.stderr.on("data", (errData: Buffer) => {
-        const errMsg = errData.toString();
-        console.error("Python stderr:", errMsg);
+        console.error("Python stderr:", errData.toString());
       });
 
       pyProcess.on("close", (code) => {
@@ -117,13 +145,11 @@ export async function GET(req: NextRequest) {
       });
 
       req.signal.addEventListener("abort", () => {
-        isClosed = true;
         try {
           pyProcess.kill();
         } catch {
           // ignore
         }
-        safeClose();
       });
     },
   });
