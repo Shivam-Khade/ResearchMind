@@ -1,0 +1,27 @@
+# Dependencies
+node_modules
+.venv
+__pycache__
+*.pyc
+
+# Production Build
+.next
+out
+build
+dist
+
+# Environment variables & secrets (CRITICAL: Keep API keys secure)
+.env
+.env*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# System & IDE
+.DS_Store
+Thumbs.db
+.vscode
+.idea
+.tempmediaStorage
+scratch

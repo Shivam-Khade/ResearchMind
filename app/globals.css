@@ -1,0 +1,195 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Syne:wght@500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Dark Theme (Default) */
+  --background: #0a0a0f;
+  --foreground: #f4f3f0;
+  
+  --canvas-bg: #0a0a0f;
+  --canvas-subtle: #111118;
+  --canvas-muted: #181822;
+
+  --surface: rgba(255, 255, 255, 0.035);
+  --surface-hover: rgba(255, 255, 255, 0.06);
+  --surface-active: rgba(255, 140, 50, 0.08);
+  --surface-border: rgba(255, 255, 255, 0.08);
+  --surface-glow: rgba(255, 140, 50, 0.15);
+
+  --text-primary: #f4f3f0;
+  --text-secondary: #9e9cb0;
+  --text-muted: #646277;
+
+  --font-syne: 'Syne', sans-serif;
+  --font-dm-sans: 'DM Sans', -apple-system, sans-serif;
+  --font-dm-mono: 'DM Mono', monospace;
+}
+
+.light {
+  /* Warm Editorial Paper Light Mode */
+  --background: #f7f5f0;
+  --foreground: #1c1917;
+
+  --canvas-bg: #f7f5f0;
+  --canvas-subtle: #eeebe3;
+  --canvas-muted: #e4e0d5;
+
+  --surface: rgba(255, 255, 255, 0.85);
+  --surface-hover: rgba(255, 255, 255, 1);
+  --surface-active: rgba(255, 140, 50, 0.12);
+  --surface-border: rgba(28, 25, 23, 0.1);
+  --surface-glow: rgba(255, 140, 50, 0.2);
+
+  --text-primary: #1c1917;
+  --text-secondary: #57534e;
+  --text-muted: #8b857d;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-dm-sans);
+  overflow-x: hidden;
+  min-height: 100vh;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Subtle background grain & amber radial glow */
+.ambient-glow {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 0;
+  background: 
+    radial-gradient(circle 800px at 15% 10%, rgba(255, 140, 50, 0.08), transparent 70%),
+    radial-gradient(circle 600px at 85% 85%, rgba(255, 90, 26, 0.04), transparent 60%);
+}
+
+.light .ambient-glow {
+  background: 
+    radial-gradient(circle 800px at 15% 10%, rgba(255, 140, 50, 0.06), transparent 70%),
+    radial-gradient(circle 600px at 85% 85%, rgba(224, 62, 11, 0.03), transparent 60%);
+}
+
+/* Faint grain overlay */
+.grain-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* Glassmorphism surface utilities */
+.glass-panel {
+  background: var(--surface);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--surface-border);
+}
+
+.glass-panel-interactive {
+  background: var(--surface);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--surface-border);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-panel-interactive:hover {
+  background: var(--surface-hover);
+  border-color: rgba(255, 140, 50, 0.28);
+  box-shadow: 0 4px 20px -2px rgba(255, 140, 50, 0.08);
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+}
+
+.light ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 140, 50, 0.4);
+}
+
+/* Respect user's reduced motion settings */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Print Stylesheet for clean Report PDF Export */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #111111 !important;
+  }
+
+  .ambient-glow,
+  .grain-overlay,
+  nav,
+  header,
+  aside,
+  .no-print,
+  button,
+  .command-palette,
+  .history-drawer {
+    display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .report-canvas {
+    max-width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+
+  .report-content {
+    font-size: 11pt !important;
+    line-height: 1.6 !important;
+    color: #000000 !important;
+  }
+
+  h1, h2, h3 {
+    page-break-after: avoid;
+    color: #000000 !important;
+  }
+
+  table {
+    page-break-inside: avoid;
+  }
+}
